@@ -8,20 +8,36 @@ std::atomic_size_t requestCount{0};
 std::atomic_size_t transferredSize{0};
 std::atomic_bool active{false};
 
-ProxyFileSource::ProxyFileSource(const std::string& cachePath,
-                                 const std::string& assetPath,
-                                 bool supportCacheOnlyRequests_)
-    : DefaultFileSource(cachePath, assetPath, supportCacheOnlyRequests_) {}
-
-ProxyFileSource::ProxyFileSource(const std::string& cachePath,
-                                 std::unique_ptr<FileSource>&& assetFileSource_,
-                                 bool supportCacheOnlyRequests_)
-    : DefaultFileSource(cachePath, std::move(assetFileSource_), supportCacheOnlyRequests_) {}
+ProxyFileSource::ProxyFileSource(const std::string& cachePath, const std::string& assetPath)
+    : DefaultFileSource(cachePath, assetPath, false) {}
 
 ProxyFileSource::~ProxyFileSource() = default;
 
 std::unique_ptr<AsyncRequest> ProxyFileSource::request(const Resource& resource, Callback callback) {
-    auto result = DefaultFileSource::request(resource, [=](Response response) {
+    auto transformed = resource;
+
+    // This is needed for compatibility with the style tests that
+    // are using local:// instead of file:// which is the schema
+    // we support.
+    if (transformed.url.compare(0, 8, "local://") == 0) {
+        transformed.url.replace(0, 8, "http://");
+
+        if (transformed.kind == Resource::Kind::Tile && transformed.tileData) {
+            transformed.tileData->urlTemplate.replace(0, 8, "http://");
+        }
+    }
+
+    if (transformed.url.compare(0, 22, "http://localhost:2900/") == 0) {
+        transformed.url.replace(0, 22, "http://");
+
+        if (transformed.kind == Resource::Kind::Tile && transformed.tileData) {
+            transformed.tileData->urlTemplate.replace(0, 22, "http://");
+        }
+    }
+
+    transformed.loadingMethod = Resource::LoadingMethod::CacheOnly;
+
+    return DefaultFileSource::request(transformed, [=](Response response) mutable {
         std::size_t size = response.data != nullptr ? response.data->size() : 0;
         if (active) {
             requestCount++;
@@ -29,12 +45,10 @@ std::unique_ptr<AsyncRequest> ProxyFileSource::request(const Resource& resource,
         }
         callback(response);
     });
-    return result;
 }
 
 std::shared_ptr<FileSource> FileSource::createPlatformFileSource(const ResourceOptions& options) {
-    auto fileSource = std::make_shared<ProxyFileSource>(
-        options.cachePath(), options.assetPath(), options.supportsCacheOnlyRequests());
+    auto fileSource = std::make_shared<ProxyFileSource>(options.cachePath(), options.assetPath());
     fileSource->setAccessToken(options.accessToken());
     fileSource->setAPIBaseURL(options.baseURL());
     return fileSource;

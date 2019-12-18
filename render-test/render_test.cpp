@@ -158,7 +158,7 @@ int runRenderTests(int argc, char** argv, std::function<void()> testStatus) {
     TestStatistics stats;
 
     for (auto& testPath : testPaths) {
-        TestMetadata metadata = parseTestMetadata(testPath, manifest);
+        TestMetadata metadata = parseTestMetadata(testPath);
 
         if (!recycleMap) {
             runner.reset();

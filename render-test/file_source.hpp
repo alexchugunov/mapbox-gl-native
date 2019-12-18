@@ -6,10 +6,7 @@ namespace mbgl {
 
 class ProxyFileSource : public DefaultFileSource {
 public:
-    ProxyFileSource(const std::string& cachePath, const std::string& assetPath, bool supportCacheOnlyRequests = true);
-    ProxyFileSource(const std::string& cachePath,
-                    std::unique_ptr<FileSource>&& assetFileSource,
-                    bool supportCacheOnlyRequests = true);
+    ProxyFileSource(const std::string& cachePath, const std::string& assetPath);
     ~ProxyFileSource();
 
     std::unique_ptr<AsyncRequest> request(const Resource&, Callback);
