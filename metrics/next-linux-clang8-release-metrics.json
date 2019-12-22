@@ -1,5 +1,4 @@
 {
-    "asset_path": "../mapbox-gl-js/test/integration",
     "base_test_path": "tests",
     "expectation_paths": [
         "expectations/platform-all"
@@ -13,6 +12,5 @@
         "probeGFX",
         "probeMemory",
         "probeNetwork"
-    ],
-    "vendor_path": "../vendor"
+    ]
 }
